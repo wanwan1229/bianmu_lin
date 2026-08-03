@@ -36,7 +36,7 @@ class OverlayService : Service() {
     companion object {
         const val ACTION_START = "com.bianmu.lin.action.START"
         const val ACTION_STOP = "com.bianmu.lin.action.STOP"
-        private const val OVERLAY_WIDTH = 80   // dp
+        private const val OVERLAY_WIDTH = 110   // dp（加宽：给气泡留空间，字随框走）
         private const val OVERLAY_HEIGHT = 110  // dp
     }
 
