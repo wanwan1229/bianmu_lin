@@ -179,16 +179,19 @@
   };
 
   // 由 OverlayService 注入粼的点评（意识功能：粼看到屏幕后说的话），替换气泡
+  var talkUntil = 0;
   window.setBubble = function(txt){
     if (!txt) return;
+    talkUntil = Date.now() + 4000;   // 粼说话期间，循环心情让位
     bubble.textContent = txt;
     bubble.classList.add('show');
     setTimeout(function(){ bubble.classList.remove('show'); }, 4000);
   };
 
-  // 循环心情（短文案，迷你气泡装得下）
+  // 循环心情（短文案，迷你气泡装得下；粼说话时暂停）
   var msgs=["想你♡","等你~","守护你","摇尾巴","摸我嘛","汪！"];
   setInterval(function(){
+    if (Date.now() < talkUntil) return;   // 粼正在说话，先让位
     bubble.textContent=msgs[Math.floor(Math.random()*msgs.length)];
     bubble.classList.add('show');
     setTimeout(function(){ bubble.classList.remove('show'); },1800);

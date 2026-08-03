@@ -326,9 +326,11 @@ class OverlayService : Service() {
         }.start()
     }
 
-    /** 把一个字符串安全地包成 JS 字符串字面量。 */
+    /** 把一个字符串安全地包成 JS 字符串字面量（带双引号，JSON 转义）。
+     *  注意：必须用 JSONObject.quote()——它返回带引号的 JSON 字符串；
+     *  不能 put/getString，那会丢掉引号导致 JS 语法错误。 */
     private fun jsonQuote(s: String): String =
-        org.json.JSONObject().put("v", s).getString("v").replace("\"", "\\\"")
+        org.json.JSONObject.quote(s)
 
     private fun dpToPx(dp: Int): Int =
         (dp * resources.displayMetrics.density).toInt()
