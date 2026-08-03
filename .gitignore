@@ -1,0 +1,14 @@
+# 边牧·粼 —— Git 忽略清单（避免把临时/编译产物推上 GitHub）
+*.iml
+.gradle/
+/local.properties
+/.idea
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+app/build/
+*.apk
+*.aab
+local.properties

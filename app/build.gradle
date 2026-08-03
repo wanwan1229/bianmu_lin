@@ -1,0 +1,38 @@
+// 边牧·粼 —— app 模块构建脚本
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.bianmu.lin'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.bianmu.lin"
+        minSdk 24          // Android 7.0+
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+    // 本工程不引入第三方库，仅用 Android SDK 自带能力
+    //（org.json 为 Android 内置；WebView/网络均用原生）
+}

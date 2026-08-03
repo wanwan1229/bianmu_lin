@@ -1,0 +1,18 @@
+// 边牧·粼 —— Android 工程 Settings（用于 Gradle 编译）
+// 需要 AGP 8.x + Gradle 8.x（见 gradle-wrapper.properties）
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "边牧粼"
+include ':app'

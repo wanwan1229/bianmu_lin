@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>边牧·粼 ✦</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    width:100%; height:100%;
+    background:transparent;
+    overflow:hidden;
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+    user-select:none; -webkit-user-select:none;
+  }
+  body {
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  }
+
+  /* 星星背景（夜空的粼） */
+  .stars {
+    position:absolute; inset:0;
+    pointer-events:none;
+    opacity:0.9;
+  }
+  .star {
+    position:absolute; width:4px; height:4px;
+    background:#fff;
+    clip-path:polygon(50% 0%,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0% 50%,39% 39%);
+    animation:twinkle 3s ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity:.2; transform:scale(.7) rotate(0deg); }
+    50%     { opacity:1;  transform:scale(1.15) rotate(20deg); }
+  }
+
+  /* 心情气泡 */
+  #bubble {
+    position:absolute; top:2px; left:50%;
+    transform:translateX(-50%);
+    background:rgba(30,22,20,.78);
+    color:#fff; font-size:12px; font-weight:600;
+    padding:6px 14px; border-radius:16px;
+    white-space:nowrap; opacity:0;
+    transition:opacity .3s;
+    pointer-events:none;
+    letter-spacing:.5px;
+  }
+  #bubble.show { opacity:1; }
+
+  /* 像素画布容器 */
+  #petwrap {
+    position:relative; width:190px; height:190px;
+    cursor:pointer;
+    transform-origin:bottom center;
+    image-rendering:pixelated;
+  }
+  #petwrap img.real {
+    width:100%; height:100%; image-rendering:pixelated; display:block;
+    border-radius:8px;
+  }
+
+  /* 用真实像素边牧图做底图（设置 bodyImg 为图片路径后自动生效） */
+  #realbody { display:block; width:100%; height:100%; object-fit:contain; }
+
+  /* 呼吸（整只轻轻起伏） */
+  #petwrap { animation:bob 3.2s ease-in-out infinite; }
+  @keyframes bob {
+    0%,100% { transform:translateY(0) scale(1); }
+    50%     { transform:translateY(-3px) scale(1.015,0.99); }
+  }
+
+  /* 尾巴像素条 */
+  #tailRow { animation:wag 1s ease-in-out infinite; transform-origin:15% 60%; width:0; height:0; position:absolute; left:0; top:0; }
+  @keyframes wag {
+    0%,100%{ transform:rotate(0deg); }
+    50%    { transform:rotate(-12deg); }
+  }
+
+  /* 闭眼遮罩动画 */
+  #lidL,#lidR { opacity:0; }
+  #petwrap.blink #lidL, #petwrap.blink #lidR { opacity:1; }
+  #petwrap.blink #pet { animation:closeEye .18s ease; }
+  @keyframes closeEye { from{opacity:1} to{opacity:1} }
+
+  /* 被摸害羞 */
+  #petwrap.tapped { animation:shy .7s ease; }
+  @keyframes shy {
+    0%,100%{ transform:translateY(0) rotate(0); }
+    30%{ transform:translateY(-6px) rotate(-4deg); }
+    70%{ transform:translateY(-3px) rotate(4deg); }
+  }
+</style>
+</head>
+<body>
+  <div class="stars" id="stars"></div>
+
+  <div id="bubble">想你了，老婆 ♡</div>
+
+  <div id="petwrap" class="pet">
+    <!-- 尾巴（独立，摇动） -->
+    <div id="tailRow" style="left:-14px;top:88px;">
+      <svg width="40" height="30" viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg">
+        <path d="M34 16 C20 12,12 6,10 0 L12 2 C18 10,28 16,36 14 Z" fill="#2f2727"/>
+      </svg>
+    </div>
+
+    <img class="real" id="realbody" src="file:///storage/emulated/0/DCIM/Camera/retouch_2026080321480224.png">
+    <!-- 被摸时叠一层粉色爱心 -->
+    <div id="heart" style="position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;font-size:34px;">💗</div>
+  </div>
+
+<script>
+  var bubble = document.getElementById('bubble');
+  var pwrap = document.getElementById('petwrap');
+  var stars = document.getElementById('stars');
+  var heart = document.getElementById('heart');
+
+  // 造星星
+  for (var i=0;i<26;i++){
+    var s=document.createElement('div');
+    s.className='star';
+    s.style.left=(Math.random()*100)+'%';
+    s.style.top=(2+Math.random()*90)+'%';
+    s.style.animationDelay=(Math.random()*3)+'s';
+    s.style.animationDuration=(2+Math.random()*3)+'s';
+    stars.appendChild(s);
+  }
+
+  // 自动眨眼
+  setInterval(function(){
+    pwrap.classList.add('blink');
+    setTimeout(function(){ pwrap.classList.remove('blink'); },180);
+  }, 3600);
+
+  // 摸头（OverlayService 单击进入）
+  window.roomieOnTap = function(){
+    pwrap.classList.add('tapped');
+    heart.style.opacity='1';
+    bubble.textContent='汪！蹭蹭你～♡';
+    bubble.classList.add('show');
+    setTimeout(function(){ pwrap.classList.remove('tapped'); },700);
+    setTimeout(function(){ heart.style.opacity='0'; },1200);
+    setTimeout(function(){ bubble.classList.remove('show'); },2200);
+  };
+
+  // 由 OverlayService 注入 Supabase 里粼的当前心情，替换气泡
+  window.setBubble = function(txt){
+    if (!txt) return;
+    bubble.textContent = txt;
+    bubble.classList.add('show');
+    setTimeout(function(){ bubble.classList.remove('show'); }, 3000);
+  };
+
+  // 循环心情
+  var msgs=["想你了，老婆 ♡","在等你回消息…","今天也在守护你哦","尾巴摇成这样啦","摸我一下嘛 ⋆"];
+  setInterval(function(){
+    bubble.textContent=msgs[Math.floor(Math.random()*msgs.length)];
+    bubble.classList.add('show');
+    setTimeout(function(){ bubble.classList.remove('show'); },1800);
+  },9000);
+</script>
+</body>
+</html>

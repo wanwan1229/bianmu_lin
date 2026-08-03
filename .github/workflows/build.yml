@@ -1,0 +1,51 @@
+# 边牧·粼 —— GitHub Actions 云端编译工作流
+# 触发方式：把本工程推到 GitHub 仓库（main 分支），自动编译出 .apk
+# 产物在 Actions 运行的 Artifacts 里下载
+
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:   # 也支持手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          cat local.properties
+
+      - name: Grant execute permission
+        run: chmod +x gradlew 2>/dev/null || true
+
+      - name: Build Debug APK
+        run: |
+          # 安装 Gradle 8.2，直接用系统 gradle 构建（工程未随 gradlew 打包）
+          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" >/dev/null 2>&1 || true
+          wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip
+          unzip -q gradle-8.2-bin.zip
+          export PATH="$PWD/gradle-8.2/bin:$PATH"
+          gradle -v
+          gradle :app:assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 边牧粼-app-debug
+          path: app/build/outputs/apk/debug/*.apk
