@@ -34,19 +34,25 @@
     50%     { opacity:1;  transform:scale(1.15) rotate(20deg); }
   }
 
-  /* 心情气泡（迷你版：小字号+短文案，不会被框截掉） */
+  /* 心情气泡（自适应宽度：字多宽框多宽，超长自动换行，绝不截字） */
   #bubble {
     position:absolute; top:2px; left:50%;
     transform:translateX(-50%);
-    background:rgba(30,22,20,.78);
+    background:rgba(30,22,20,.82);
     color:#fff; font-size:9px; font-weight:600;
-    padding:3px 8px; border-radius:10px;
-    white-space:nowrap; opacity:0;
+    padding:4px 9px; border-radius:10px;
+    white-space:normal;      /* 长句自动换行 */
+    opacity:0;
     transition:opacity .3s;
     pointer-events:none;
     letter-spacing:.3px;
-    max-width:104px;
-    overflow:hidden; text-overflow:ellipsis;
+    width:max-content;       /* 字数决定框宽（核心：框随字走） */
+    max-width:150px;         /* 上限：超出就换行，不截断 */
+    min-width:24px;
+    line-height:1.35;
+    text-align:center;
+    overflow:visible;        /* 永不截字 */
+    z-index:9;
   }
   #bubble.show { opacity:1; }
 
