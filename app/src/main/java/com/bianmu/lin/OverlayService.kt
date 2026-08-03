@@ -31,8 +31,8 @@ class OverlayService : Service() {
     companion object {
         const val ACTION_START = "com.bianmu.lin.action.START"
         const val ACTION_STOP = "com.bianmu.lin.action.STOP"
-        private const val OVERLAY_WIDTH = 200   // dp
-        private const val OVERLAY_HEIGHT = 260  // dp
+        private const val OVERLAY_WIDTH = 120   // dp
+        private const val OVERLAY_HEIGHT = 170  // dp
     }
 
     private lateinit var windowManager: WindowManager
@@ -92,6 +92,7 @@ class OverlayService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
             PixelFormat.TRANSLUCENT
         )
@@ -101,8 +102,9 @@ class OverlayService : Service() {
         wmParams.width = dpToPx(OVERLAY_WIDTH)
         wmParams.height = dpToPx(OVERLAY_HEIGHT)
 
-        // 手势：拖拽
-        overlayView.setOnTouchListener { _, event ->
+        // 手势：拖拽 + 单击（绑定到 WebView，保证能收到触摸事件）
+        // return false 让事件继续传给 WebView 内部（页面自身仍可响应）
+        webView.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = wmParams.x
@@ -115,7 +117,6 @@ class OverlayService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
-                    // 位移超过 10px 视为拖拽（对照仓库：拖拽>10px）
                     if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
                         dragging = true
                         wmParams.x = initialX + dx.toInt()
@@ -125,7 +126,6 @@ class OverlayService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    // 单击（没拖拽）——可触发"蹭你"动画，通过 JS 告知 pet.html
                     if (!dragging) {
                         webView?.let { w ->
                             w.evaluateJavascript(
@@ -133,7 +133,45 @@ class OverlayService : Service() {
                                 null
                             )
                         }
-                        // 上报手势到 Supabase（摸头）
+                        logGestureInBackground("tap")
+                    }
+                    dragging = false
+                    true
+                }
+                else -> false
+            }
+        }
+
+        // 兜底：也把触摸挂到根视图，尺寸缩小后更易点中
+        overlayView.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    initialX = wmParams.x
+                    initialY = wmParams.y
+                    dragging = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - initialTouchX
+                    val dy = event.rawY - initialTouchY
+                    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                        dragging = true
+                        wmParams.x = initialX + dx.toInt()
+                        wmParams.y = initialY + dy.toInt()
+                        windowManager.updateViewLayout(overlayView, wmParams)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (!dragging) {
+                        webView?.let { w ->
+                            w.evaluateJavascript(
+                                "window.roomieOnTap && window.roomieOnTap()",
+                                null
+                            )
+                        }
                         logGestureInBackground("tap")
                     }
                     dragging = false
