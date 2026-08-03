@@ -1,11 +1,16 @@
 package com.bianmu.lin
 
 import android.app.Service
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
+import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -44,6 +49,15 @@ class OverlayService : Service() {
     private var initialTouchX = 0f
     private var initialTouchY = 0f
     private var dragging = false
+
+    // ===== 意识（眼睛+嘴巴）：前台应用上报 & 轮询粼的点评 =====
+    private val awarenessHandler = Handler(Looper.getMainLooper())
+    private var awarenessRunnable: Runnable? = null
+    private var lastReportedPkg: String? = null
+    private var lastReportedAt = 0L
+    private var lastShownTalk: String? = null
+    private val REPORT_INTERVAL_MS = 30_000L  // 上报前台应用节流
+    private val POLL_INTERVAL_MS = 10_000L     // 轮询点评间隔
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -149,6 +163,8 @@ class OverlayService : Service() {
 
         try {
             windowManager.addView(overlayView, wmParams)
+            // 意识上线：开始"看"前台应用 + 轮询粼的点评
+            startAwareness()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -190,7 +206,89 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // 停止意识循环
+        awarenessRunnable?.let { awarenessHandler.removeCallbacks(it) }
         runCatching { windowManager.removeView(overlayView) }
+    }
+
+    /**
+     * 意识循环（每 10 秒一次）：
+     *  ① 眼睛：每 30 秒检测前台应用并上报 app_usage（包名变化才上报）
+     *  ② 嘴巴：轮询 pet_state.lin_talk，读到粼的新点评 → 注入气泡显示
+     * 全部在后台线程做网络，失败静默，不影响桌宠本体。
+     */
+    private fun startAwareness() {
+        awarenessRunnable = object : Runnable {
+            override fun run() {
+                val now = System.currentTimeMillis()
+
+                // ① 眼睛：上报前台应用（30s 节流）
+                if (now - lastReportedAt >= REPORT_INTERVAL_MS) {
+                    lastReportedAt = now
+                    Thread {
+                        try {
+                            val pkg = getForegroundPackage()
+                            if (pkg != null &&
+                                pkg != lastReportedPkg &&
+                                !pkg.startsWith("com.bianmu.lin")
+                            ) {
+                                lastReportedPkg = pkg
+                                SupabaseManager.reportAppUsage(pkg, null)
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }.start()
+                }
+
+                // ② 嘴巴：轮询粼的点评（10s 一次）
+                Thread {
+                    try {
+                        val talk = SupabaseManager.fetchLinTalk()
+                        if (!talk.isNullOrBlank() && talk != lastShownTalk) {
+                            lastShownTalk = talk
+                            webView.post {
+                                try {
+                                    webView.evaluateJavascript(
+                                        "window.setBubble && window.setBubble(${jsonQuote(talk)})",
+                                        null
+                                    )
+                                } catch (e: Exception) { /* 忽略 */ }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }.start()
+
+                awarenessHandler.postDelayed(this, POLL_INTERVAL_MS)
+            }
+        }
+        awarenessHandler.postDelayed(awarenessRunnable!!, 3000)
+    }
+
+    /**
+     * 获取当前前台应用包名（需要"使用情况访问"权限）。
+     * 通过最近 1 分钟内最后一个 ACTIVITY_RESUMED 事件判断；无权限时返回 null。
+     */
+    private fun getForegroundPackage(): String? {
+        return try {
+            val usm = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val end = System.currentTimeMillis()
+            val events = usm.queryEvents(end - 60_000, end)
+            var pkg: String? = null
+            val event = UsageEvents.Event()
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
+                    pkg = event.packageName
+                }
+            }
+            pkg
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     /**

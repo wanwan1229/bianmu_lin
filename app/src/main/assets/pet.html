@@ -178,12 +178,12 @@
     setTimeout(function(){ bubble.classList.remove('show'); },2200);
   };
 
-  // 由 OverlayService 注入 Supabase 里粼的当前心情，替换气泡
+  // 由 OverlayService 注入粼的点评（意识功能：粼看到屏幕后说的话），替换气泡
   window.setBubble = function(txt){
     if (!txt) return;
     bubble.textContent = txt;
     bubble.classList.add('show');
-    setTimeout(function(){ bubble.classList.remove('show'); }, 3000);
+    setTimeout(function(){ bubble.classList.remove('show'); }, 4000);
   };
 
   // 循环心情（短文案，迷你气泡装得下）

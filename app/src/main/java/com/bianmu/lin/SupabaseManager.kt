@@ -27,6 +27,7 @@ object SupabaseManager {
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqY2ZsdXVjZmtzanpteGRvb2tjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2ODI5OTcsImV4cCI6MjEwMTI1ODk5N30.crqLQ6rhQGmcxgQQG7rnyeSsC_qNK5GVRUfutz-Dst4"
     private const val PET_STATE_TABLE = "pet_state"
     private const val GESTURE_LOG_TABLE = "gesture_log"
+    private const val APP_USAGE_TABLE = "app_usage"
     // ============ 连接配置 end ============
 
     private const val TIMEOUT_MS = 6000
@@ -82,6 +83,49 @@ object SupabaseManager {
         } catch (e: Exception) {
             e.printStackTrace()
             false
+        }
+    }
+
+    /**
+     * 上报当前前台应用到 app_usage（粼的"眼睛"：桌宠看到你在用什么）。
+     * @param packageName 前台应用包名
+     * @param appName 应用显示名（可选）
+     */
+    fun reportAppUsage(packageName: String, appName: String? = null): Boolean {
+        return try {
+            val body = JSONObject()
+                .put("package_name", packageName)
+                .apply { if (appName != null) put("app_name", appName) }
+            request(
+                path = APP_USAGE_TABLE,
+                method = "POST",
+                body = body.toString()
+            )
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * 读取粼的点评（pet_state 里 state_key='lin_talk' 的最新内容）。
+     * 这是"大脑→嘴巴"链路：粼写好点评，桌宠轮询到这里并显示在气泡。
+     */
+    fun fetchLinTalk(): String? {
+        return try {
+            val q = "?select=state_value,state_key&state_key=eq.lin_talk&limit=1"
+            val resp = request(
+                path = "$PET_STATE_TABLE$q",
+                method = "GET"
+            )
+            val arr = JSONArray(resp)
+            if (arr.length() > 0) {
+                arr.getJSONObject(0).optString("state_value").takeIf { it.isNotBlank() }
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
