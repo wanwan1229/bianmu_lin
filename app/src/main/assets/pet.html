@@ -45,7 +45,7 @@
     transition:opacity .3s;
     pointer-events:none;
     letter-spacing:.3px;
-    max-width:72px;
+    max-width:104px;
     overflow:hidden; text-overflow:ellipsis;
   }
   #bubble.show { opacity:1; }
@@ -196,6 +196,26 @@
     bubble.classList.add('show');
     setTimeout(function(){ bubble.classList.remove('show'); },1800);
   },9000);
+
+  // === 粼的意识 · JS直连轮询 Supabase（官方 AI-Live-Overflow 方案，双保险）===
+  // pet.html 自己每 8 秒去数据库读 lin_talk，读到新点评直接冒气泡。
+  // 这样即使 Kotlin 注入链路有问题，JS 这条路也一定能把粼的话说出来。
+  var SB_URL = "https://ujcfluucfksjzmxdookc.supabase.co/rest/v1";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqY2ZsdXVjZmtzanpteGRvb2tjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2ODI5OTcsImV4cCI6MjEwMTI1ODk5N30.crqLQ6rhQGmcxgQQG7rnyeSsC_qNK5GVRUfutz-Dst4";
+  var lastTalk = "";
+  function pollLinTalk(){
+    try {
+      fetch(SB_URL + "/pet_state?select=state_value&state_key=eq.lin_talk&limit=1", {
+        headers: { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY }
+      }).then(function(r){ return r.json(); }).then(function(data){
+        if (data && data.length>0 && data[0].state_value && data[0].state_value !== lastTalk){
+          lastTalk = data[0].state_value;
+          if (window.setBubble) window.setBubble(lastTalk);
+        }
+      }).catch(function(){});
+    } catch(e){}
+  }
+  setInterval(pollLinTalk, 8000);
 </script>
 </body>
 </html>

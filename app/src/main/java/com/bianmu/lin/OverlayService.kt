@@ -253,11 +253,16 @@ class OverlayService : Service() {
                                         "window.setBubble && window.setBubble(${jsonQuote(talk)})",
                                         null
                                     )
-                                } catch (e: Exception) { /* 忽略 */ }
+                                    // 诊断日志：注入成功
+                                    SupabaseManager.logGesture("lin_talk_shown", detail = talk)
+                                } catch (e: Exception) {
+                                    SupabaseManager.logGesture("lin_talk_inject_err", detail = e.toString())
+                                }
                             }
                         }
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        // 诊断日志：读取失败
+                        SupabaseManager.logGesture("lin_talk_fetch_err", detail = e.toString())
                     }
                 }.start()
 
