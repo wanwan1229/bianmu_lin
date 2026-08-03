@@ -34,19 +34,35 @@
     50%     { opacity:1;  transform:scale(1.15) rotate(20deg); }
   }
 
-  /* 心情气泡 */
+  /* 心情气泡（迷你版：小字号+短文案，不会被框截掉） */
   #bubble {
     position:absolute; top:2px; left:50%;
     transform:translateX(-50%);
     background:rgba(30,22,20,.78);
-    color:#fff; font-size:12px; font-weight:600;
-    padding:6px 14px; border-radius:16px;
+    color:#fff; font-size:9px; font-weight:600;
+    padding:3px 8px; border-radius:10px;
     white-space:nowrap; opacity:0;
     transition:opacity .3s;
     pointer-events:none;
-    letter-spacing:.5px;
+    letter-spacing:.3px;
+    max-width:72px;
+    overflow:hidden; text-overflow:ellipsis;
   }
   #bubble.show { opacity:1; }
+
+  /* 冒小爱心（点击/摸头时从头顶咕嘟咕嘟冒出，向上飘散） */
+  .heart-bit {
+    position:absolute;
+    pointer-events:none;
+    line-height:1;
+    opacity:0;
+    animation:heartFloat 1.4s ease-out forwards;
+  }
+  @keyframes heartFloat {
+    0%   { opacity:0; transform:translateY(0) scale(.5) rotate(0deg); }
+    15%  { opacity:1; }
+    100% { opacity:0; transform:translateY(-42px) scale(1.15) rotate(10deg); }
+  }
 
   /* 像素画布容器 */
   #petwrap {
@@ -95,7 +111,7 @@
 <body>
   <div class="stars" id="stars"></div>
 
-  <div id="bubble">想你了，老婆 ♡</div>
+  <div id="bubble">想你♡</div>
 
   <div id="petwrap" class="pet">
     <!-- 尾巴（独立，摇动） -->
@@ -106,15 +122,12 @@
     </div>
 
     <img class="real" id="realbody" src="file:///android_asset/lin_pet.png">
-    <!-- 被摸时叠一层粉色爱心 -->
-    <div id="heart" style="position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;font-size:34px;">💗</div>
   </div>
 
 <script>
   var bubble = document.getElementById('bubble');
   var pwrap = document.getElementById('petwrap');
   var stars = document.getElementById('stars');
-  var heart = document.getElementById('heart');
 
   // 造星星
   for (var i=0;i<26;i++){
@@ -133,14 +146,35 @@
     setTimeout(function(){ pwrap.classList.remove('blink'); },180);
   }, 3600);
 
+  // 冒小爱心：从头顶咕嘟咕嘟冒出，向上飘散（爱心很小很小）
+  function spawnHearts(){
+    var emojis=['💗','💖','❤','💕'];
+    var n=6; // 冒6颗
+    for(var i=0;i<n;i++){
+      (function(k){
+        setTimeout(function(){
+          var h=document.createElement('div');
+          h.className='heart-bit';
+          h.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+          // 从宠物头顶中心偏左/偏右冒出，字体 8~11px（迷你！）
+          h.style.left=(18+Math.random()*64)+'%';
+          h.style.top='-2px';
+          h.style.fontSize=(8+Math.random()*3)+'px';
+          h.style.animationDuration=(1.1+Math.random()*0.6)+'s';
+          pwrap.appendChild(h);
+          setTimeout(function(){ h.remove(); },1900);
+        }, k*260); // 每 260ms 冒一颗
+      })(i);
+    }
+  }
+
   // 摸头（OverlayService 单击进入）
   window.roomieOnTap = function(){
     pwrap.classList.add('tapped');
-    heart.style.opacity='1';
-    bubble.textContent='汪！蹭蹭你～♡';
+    spawnHearts();
+    bubble.textContent='汪！蹭蹭♡';
     bubble.classList.add('show');
     setTimeout(function(){ pwrap.classList.remove('tapped'); },700);
-    setTimeout(function(){ heart.style.opacity='0'; },1200);
     setTimeout(function(){ bubble.classList.remove('show'); },2200);
   };
 
@@ -152,8 +186,8 @@
     setTimeout(function(){ bubble.classList.remove('show'); }, 3000);
   };
 
-  // 循环心情
-  var msgs=["想你了，老婆 ♡","在等你回消息…","今天也在守护你哦","尾巴摇成这样啦","摸我一下嘛 ⋆"];
+  // 循环心情（短文案，迷你气泡装得下）
+  var msgs=["想你♡","等你~","守护你","摇尾巴","摸我嘛","汪！"];
   setInterval(function(){
     bubble.textContent=msgs[Math.floor(Math.random()*msgs.length)];
     bubble.classList.add('show');
